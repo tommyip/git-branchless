@@ -155,7 +155,8 @@ pub fn amend(
         )
     };
 
-    let amended_commit_oid = head_commit.amend_commit(
+    let amended_commit_oid = repo.amend_commit(
+        &head_commit,
         None,
         Some(&author),
         Some(&committer),

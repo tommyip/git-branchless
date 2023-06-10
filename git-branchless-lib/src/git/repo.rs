@@ -19,7 +19,7 @@ use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 use std::{io, time};
 
-use bstr::ByteVec;
+use bstr::{ByteSlice, ByteVec};
 use chrono::NaiveDateTime;
 use cursive::theme::BaseColor;
 use cursive::utils::markup::StyledString;
@@ -1178,6 +1178,55 @@ impl Repo {
             )
             .map_err(Error::CreateCommit)?;
         Ok(make_non_zero_oid(oid))
+    }
+
+    /// Amend a commit with all non-`None` values
+    #[instrument]
+    pub fn amend_commit(
+        &self,
+        commit_to_amend: &Commit,
+        update_ref: Option<&str>,
+        author: Option<&Signature>,
+        committer: Option<&Signature>,
+        message: Option<&str>,
+        tree: Option<&Tree>,
+    ) -> Result<NonZeroOid> {
+        let owned_author;
+        let owned_committer;
+        let owned_tree;
+        let owned_message;
+        let author = if let Some(author) = author {
+            author
+        } else {
+            owned_author = commit_to_amend.get_author();
+            &owned_author
+        };
+
+        let committer = if let Some(committer) = committer {
+            committer
+        } else {
+            owned_committer = commit_to_amend.get_committer();
+            &owned_committer
+        };
+
+        let message = if let Some(message) = message {
+            message
+        } else {
+            owned_message = commit_to_amend.get_message_raw();
+            owned_message.to_str().unwrap()
+        };
+
+        let tree = if let Some(tree) = tree {
+            tree
+        } else {
+            owned_tree = commit_to_amend.get_tree()?;
+            &owned_tree
+        };
+
+        let parents = commit_to_amend.get_parents().into_iter().collect_vec();
+        let parents = parents.iter().collect_vec();
+
+        self.create_commit(update_ref, author, committer, message, tree, parents)
     }
 
     /// Cherry-pick a commit in memory and return the resulting index.
