@@ -178,6 +178,26 @@ pub struct SwitchOptions {
     pub target: Option<String>,
 }
 
+/// Options for signing commits
+#[derive(Args, Debug)]
+pub struct SignOptions {
+    /// GPG-sign commits. The `keyid` argument is optional and defaults to the committer
+    /// identity.
+    #[clap(
+        short = 'S',
+        long = "gpg-sign",
+        value_name = "keyid",
+        conflicts_with = "no_gpg_sign",
+        num_args(0..=1),
+        default_missing_value(""),
+    )]
+    pub gpg_sign: Option<String>,
+
+    /// Countermand `commit.gpgSign` configuration variable.
+    #[clap(long = "no-gpg-sign", conflicts_with = "gpg_sign")]
+    pub no_gpg_sign: bool,
+}
+
 /// Internal use.
 #[derive(Debug, Parser)]
 pub enum HookSubcommand {
@@ -420,6 +440,10 @@ pub enum Command {
         /// formatting or refactoring changes.
         #[clap(long)]
         reparent: bool,
+
+        /// Options for signing commits.
+        #[clap(flatten)]
+        sign_options: SignOptions,
     },
 
     /// Gather information about recent operations to upload as part of a bug
